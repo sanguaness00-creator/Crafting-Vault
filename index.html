@@ -694,12 +694,50 @@
             .add-section { padding: 14px; }
             .form-field { min-width: 100%; }
         }
+
+        /* ===== Save button ===== */
+        header { position: relative; }
+        .save-btn {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(180deg, #3a0f0b, #170605);
+            color: #e8d9a8;
+            border: 1px solid #7d6b3c;
+            border-radius: 2px;
+            padding: 10px 18px;
+            font-family: 'Cinzel', 'Palatino Linotype', Georgia, serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 5;
+        }
+        .save-btn:hover { background: linear-gradient(180deg, #d61f1f, #7a0c0c); color: #fff; }
+        .save-btn.flash { border-color: #6fcf6f; color: #9be59b; }
+        .save-btn.error { border-color: #d9674f; color: #ff9a85; }
+        @media (max-width: 820px) {
+            .save-btn {
+                position: static;
+                transform: none;
+                display: block;
+                margin: 10px auto 0;
+                width: 100%;
+                max-width: 320px;
+                padding: 14px 18px;
+                font-size: 0.9rem;
+            }
+        }
     </style>
 </head>
 <body data-view="components">
 
     <header>
         <h1>Magic Item Crafting Vault</h1>
+        <button type="button" class="save-btn" id="save-btn" onclick="saveNow()">Save</button>
     </header>
 
     <div class="main-layout">
@@ -3244,6 +3282,43 @@
         applyInventorySearch();
         updateCraftingValidation();
         // ===== END SAVE / LOAD =====
+
+        // ===== MANUAL SAVE BUTTON =====
+        function requestPersistentStorage() {
+            try {
+                if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+            } catch (e) {}
+        }
+
+        function showSaveResult(ok) {
+            const b = document.getElementById('save-btn');
+            if (!b) return;
+            clearTimeout(b._t);
+            const t = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            b.textContent = ok ? 'Saved \u2713 ' + t : 'Save failed \u2717';
+            b.classList.toggle('error', !ok);
+            b.classList.add('flash');
+            b._t = setTimeout(() => {
+                b.textContent = 'Save';
+                b.classList.remove('error', 'flash');
+            }, 3500);
+        }
+
+        requestPersistentStorage();
+
+        function saveNow() {
+            let ok = false;
+            try {
+                isRestoring = false;
+                saveState();
+                ok = !!localStorage.getItem(STORAGE_KEY);
+            } catch (e) { ok = false; }
+            requestPersistentStorage();
+            showSaveResult(ok);
+        }
+        // Save again whenever the app is hidden, backgrounded or closed
+        window.addEventListener('pagehide', () => { isRestoring = false; saveState(); });
+        // ===== END MANUAL SAVE =====
     </script>
 
 </body></html>
